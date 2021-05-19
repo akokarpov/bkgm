@@ -68,12 +68,12 @@ class Backgammon:
 
             self.check_events()
 
+            if self.player.cpu:
+                self.dices.remove(self.board.cpu_move())
+
             if not self.board.get_moves(self.dices.rolls, self.player):
                 self.player = self.player2 if self.player == self.player1 else self.player1
                 self.board.get_moves(self.dices.roll(), self.player)
-            
-            if self.player.cpu:
-                self.dices.remove(self.board.cpu_move())
 
             self.update_screen()
 
