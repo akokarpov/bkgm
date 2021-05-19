@@ -1,13 +1,10 @@
 
-from settings import Settings
-
-
 class Player:
     """Player class which represents a human or CPU."""
 
-    def __init__(self, color, screen) -> None:
-        self.settings = Settings()
-        self.screen = screen
+    def __init__(self, color, bkgm) -> None:
+        self.settings = bkgm.settings
+        self.screen = bkgm.screen
         if color == "w":
             self.color = color
             self.opponent_color = "b"
@@ -31,4 +28,5 @@ class Player:
 
     def blitme(self):
         """Draws text heading who's turn it is on screen."""
-        self.screen.blit(self.get_label(), ((self.settings.WIDTH - self.settings.back_width) / 2, 8))
+        self.screen.blit(
+            self.get_label(), ((self.settings.WIDTH - self.settings.back_width) / 2, 8))

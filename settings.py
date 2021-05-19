@@ -4,6 +4,8 @@ import pygame
 
 class Settings:
     def __init__(self) -> None:
+        self.game_over = False
+        self.is_checker_moving = False
         self.dices_sound = pygame.mixer.Sound(os.path.join("data", "dices.mp3"))
         self.font = pygame.font.Font('freesansbold.ttf', 40)
         self.SCREEN_SIZE = self.WIDTH, self.HEIGHT = 1024, 768

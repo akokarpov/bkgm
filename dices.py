@@ -2,14 +2,13 @@
 import os
 import pygame
 from random import randint
-from settings import Settings
 
 class Dices:
     """Class of dices to return rand numbers and corresponding images."""
 
-    def __init__(self, screen) -> None:
-        self.screen = screen
-        self.settings = Settings()
+    def __init__(self, bkgm) -> None:
+        self.screen = bkgm.screen
+        self.settings = bkgm.settings
         self.rolls = []
         self.roll_p1 = None
         self.roll_p2 = None
@@ -62,6 +61,8 @@ class Dices:
 
     def remove(self, indexes):
         """Discards rolls played by the player."""
+        if indexes == None:
+            return
         s_index = indexes[0]
         t_index = indexes[1]
         if len(self.rolls) == 1 or sum(self.rolls) == (t_index - s_index):
@@ -83,3 +84,5 @@ class Dices:
                     rolls_to_remove = 1
             for _ in range(rolls_to_remove):
                 self.rolls.remove(self.rolls[0])
+        self.kill()
+        self.update()

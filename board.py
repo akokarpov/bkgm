@@ -1,7 +1,6 @@
 
 import os
 import pygame
-from settings import Settings
 from random import choice
 
 
@@ -9,46 +8,60 @@ class Board:
     """Engine of the game. The 2 board parts contain points.
     The board parts are rotated on each player change."""
 
-    def __init__(self, screen, *points) -> None:
-        self.settings = Settings()
-        self.screen = screen
+    def __init__(self, bkgm) -> None:
+        self.screen = bkgm.screen
+        self.settings = bkgm.settings
         self.background = pygame.image.load(
             os.path.join("data", "board.jpg")).convert()
         self.back_width = self.background.get_size()[0]
         self.back_height = self.background.get_size()[1]
-        self.points_w = points[0:12]
-        self.points_b = points[12:24]
-        self.endpoint_w = points[24:25]
-        self.endpoint_b = points[25:26]
+        self.points_w = bkgm.points[0:12]
+        self.points_b = bkgm.points[12:24]
+        self.endpoint_w = bkgm.points[24:25]
+        self.endpoint_b = bkgm.points[25:26]
         self.board = None
         self.player = None
         self.doubles = False
-        self.doubles_forced = False
+        self.head_forced = False
         self.head_played = False
         self.moves = None
+        self.moving_checker = None
+    
+    def combine(self, rolls):
 
-    def blitme(self):
-        self.screen.blit(self.background, (
-            (self.settings.WIDTH - self.back_width) / 2,
-            self.settings.HEIGHT - self.back_height)
-        )
+        if len(rolls) == 1:
+            combination = rolls
+        if len(rolls) == 2:
+            combination = [rolls[0], rolls[1], rolls[0] + rolls[1]]
+        if len(rolls) >= 3:
+            self.doubles = True
+            combination = [roll + roll * i for i, roll in enumerate(rolls)]
+            if len(self.board[0].stack) >= 14:
+                self.head_played = False
+                if rolls[0] >= 3:
+                    self.head_forced = True
+                    combination = [rolls[0]]
+            
+        if self.head_forced and len(self.board[0].stack) == 13:
+            self.head_forced = False
+            self.head_played = True
+            combination = [rolls[0], rolls[0] + rolls[0]]               
+        
+        return combination
+
 
     def get_moves(self, rolls, player):
         """Gets available moves."""
-        self.moves = {}
-        self.player = player
-        self.rotate(self.player.color)
 
         if rolls == []:
             self.reset()
             return False
 
-        if len(rolls) >= 3:
-            rolls = [roll + roll * i for i, roll in enumerate(rolls)]
-            self.doubles = True
-        if len(rolls) == 2:
-            rolls = [rolls[0], rolls[1], rolls[0] + rolls[1]]
-        self.force_doubles(rolls)
+        self.moves = {}
+        self.player = player
+        self.rotate(self.player.color)
+        
+        rolls = self.combine(rolls)
 
         if self.count_points(s_index=0, t_index=18) == 0:
             self.player.bear_off = True
@@ -56,6 +69,8 @@ class Board:
 
         for s_index, _ in enumerate(self.board):
             endpoint = len(self.board) - 1
+            if self.head_forced:
+                s_index = 0
             if s_index == 0 and self.head_played:
                 continue
             if s_index == endpoint and player.bear_off:
@@ -68,12 +83,9 @@ class Board:
                             if self.check_prime(s_index, t_index):
                                 if rolls.index(roll) == 2 and self.moves == {}:
                                     break
-                                if self.doubles_forced:
-                                    s_index = 0
-                                    t_index = rolls[0]
                                 self.add_moves(s_index, t_index)
                         else:
-                            if self.doubles and not self.doubles_forced:
+                            if self.doubles:
                                 break
                     else:
                         if self.point_empty(t_index) or \
@@ -91,7 +103,9 @@ class Board:
                                 self.doubles and roll == 1 and s_index <= 10 and t_index == roll * 2:
                             self.add_moves(s_index, t_index)
                             self.one_move_to_play()
-        if self.moves == {}:
+        if self.check_winner():
+            return True
+        elif self.moves == {}:
             self.reset()
             return False
         else:
@@ -101,15 +115,7 @@ class Board:
         """Sets head_played and doubles flags to False values."""
         self.head_played = False
         self.doubles = False
-
-    def force_doubles(self, rolls):
-        """A second checker off the head is forced if roll on first move is > 2."""
-        if len(self.board[0].stack) == 15 and rolls[0] >= 3 and self.doubles:
-            self.doubles_forced = True
-        if len(self.board[0].stack) == 13 and self.doubles_forced:
-            self.doubles_forced = False
-        if len(self.board[0].stack) == 14 and rolls[0] <= 2 and self.doubles:
-            self.head_played = False
+        self.head_forced = False
 
     def rotate(self, player_color):
         """Rotates the board according to player's turn."""
@@ -207,24 +213,36 @@ class Board:
             t_index = self.check_endpoint(t_index)
             self.board[t_index].backlit(mode)
 
-    def player_move(self, s_index, mouse_coords):
-        """Moves checker from one point to another."""
-        played_indexes = False
-        for t_index in self.moves[s_index]:
+    def take_checker(self, mouse_coords):
+        """Returns True if player took a checker from the point."""
+        for s_index in self.moves.keys():
+            if self.board[s_index].rect.collidepoint(mouse_coords):
+                self.moving_checker = self.board[s_index].stack[-1]
+                self.lit_points(s_index, "on")
+                self.s_index = s_index
+                return True
+
+    def player_move(self, mouse_coords):
+        """Makes a move if player's move was legal."""
+        played_indexes = None
+        for t_index in self.moves[self.s_index]:
             returned_t_index = t_index
             t_index = self.check_endpoint(t_index)
             if self.board[t_index].rect.collidepoint(mouse_coords):
-                self.move_checker(s_index, t_index)
-                self.board[t_index].align_checkers()
-                if s_index == 0:
+                if self.s_index == 0:
                     self.head_played = True
-                played_indexes = (s_index, returned_t_index)
-        self.lit_points(s_index, "off")
-        self.board[s_index].align_checkers()
+                played_indexes = self.s_index, returned_t_index
+                self.move_checker(self.s_index, t_index)
+                break
+        self.lit_points(self.s_index, "off")
+        self.board[t_index].align_checkers()
+        self.board[self.s_index].align_checkers()
         return played_indexes
 
     def cpu_move(self):
         """Makes random moves if player is CPU."""
+        if self.moves == {}:
+            return None
         s_index = choice(list(self.moves.keys()))
         t_index = choice(self.moves[s_index])
         if s_index == 0:
@@ -235,5 +253,15 @@ class Board:
         return s_index, t_index
 
     def check_winner(self):
+        """Return True if player beared off all checkers."""
         if self.player.bear_off and len(self.board[-1].stack) == 15:
             self.player.winner = True
+            self.settings.game_over = True
+            return True
+    
+    def blitme(self):
+        """Draws background with board image on the screen."""
+        self.screen.blit(self.background, (
+            (self.settings.WIDTH - self.back_width) / 2,
+            self.settings.HEIGHT - self.back_height)
+        )

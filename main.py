@@ -10,84 +10,74 @@ from random import choice
 
 
 class Backgammon:
+    """Main game class with key attributes."""
+
     def __init__(self) -> None:
         pygame.init()
         pygame.display.set_caption("Russian Long Backgammon")
         self.settings = Settings()
         self.screen = pygame.display.set_mode(self.settings.SCREEN_SIZE)
         self.clock = pygame.time.Clock()
-        self.player1 = Player("w", self.screen)
-        self.player2 = Player("b", self.screen)
-        self.checkers = [Checker(number) for number in range(30)]
-        self.points = [Point(number, *self.checkers) for number in range(26)]
-        self.dices = Dices(self.screen)
-        self.board = Board(self.screen, *self.points)
+        self.dices = Dices(self)
+        self.player1 = Player("w", self)
+        self.player2 = Player("b", self)
+        self.checkers = [Checker(num, self) for num in range(30)]
+        self.points = [Point(num, self) for num in range(26)]
+        self.board = Board(self)
         self.sprites_group = pygame.sprite.Group(*self.points, *self.checkers)
-        self.moving = False
-        self.game_over = False
-        self.player = None
+        self.game_reset()
+
+    def game_reset(self):
+        cpu = choice([self.player1, self.player2])
+        cpu.cpu = True if cpu == self.player1 else cpu == self.player2
+        self.player = self.dices.kick_off(self.player1, self.player2)
+        self.board.get_moves(self.dices.roll(), self.player)
+
+    def check_events(self):
+        """Checks events in events loop."""
+        for event in pygame.event.get():
+            mouse = pygame.mouse.get_pos()
+            if event.type == pygame.QUIT or \
+                event.type == pygame.KEYDOWN and \
+                    event.key == pygame.K_ESCAPE:
+                self.settings.game_over = True
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if self.board.take_checker(mouse):
+                    self.settings.is_checker_moving = True
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if self.settings.is_checker_moving:
+                    self.dices.remove(self.board.player_move(mouse))
+                    self.settings.is_checker_moving = False
+
+    def update_screen(self):
+        """Draws images and sprites on screen."""
+        self.screen.fill(self.settings.BEIGE)
+        self.board.blitme()
+        self.player.blitme()
+        self.dices.draw()
+        if self.settings.is_checker_moving:
+            self.board.moving_checker.set_pos(*pygame.mouse.get_pos())
+        self.sprites_group.draw(self.screen)
+        pygame.display.flip()
+        fps = 0.5 if self.player.cpu else 30
+        self.clock.tick(fps)
 
     def run(self):
-        while not self.game_over:
+        """Executes the main game loop."""
+        while not self.settings.game_over:
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT or \
-                    event.type == pygame.KEYDOWN and \
-                        event.key == pygame.K_ESCAPE:
-                    self.game_over = True
+            self.check_events()
 
-            mouse_coords = pygame.mouse.get_pos()
-
-            if self.board.moves and self.player.cpu:
-                self.dices.remove(self.board.cpu_move())
-                self.dices.kill()
-                self.dices.update()
-
-            if self.board.board == None:
-                cpu = choice([self.player1, self.player2])
-                cpu.cpu = True if cpu == self.player1 else cpu == self.player2
-                self.player = self.dices.kick_off(self.player1, self.player2)
-                self.board.get_moves(self.dices.roll(), self.player)
-
-            if not self.board.get_moves(self.dices.rolls, self.player) and not self.player.winner:
+            if not self.board.get_moves(self.dices.rolls, self.player):
                 self.player = self.player2 if self.player == self.player1 else self.player1
                 self.board.get_moves(self.dices.roll(), self.player)
+            
+            if self.player.cpu:
+                self.dices.remove(self.board.cpu_move())
 
-            if event.type == pygame.MOUSEBUTTONDOWN and not self.moving:
-                for s_index in self.board.moves.keys():
-                    if self.board.board[s_index].rect.collidepoint(mouse_coords):
-                        self.board.lit_points(s_index, "on")
-                        moving_checker = self.board.board[s_index].stack[-1]
-                        self.moving = True
-                        break
+            self.update_screen()
 
-            if event.type == pygame.MOUSEMOTION and self.moving:
-                moving_checker.rect.center = mouse_coords
-
-            if event.type == pygame.MOUSEBUTTONUP and self.moving:
-                self.moving = False
-                played_indexes = self.board.player_move(s_index, mouse_coords)
-                if played_indexes:
-                    self.dices.remove(played_indexes)
-                    self.dices.kill()
-                    self.dices.update()
-
-            self.board.check_winner()
-
-            self.screen.fill(self.settings.BEIGE)
-            self.board.blitme()
-            self.player.blitme()
-            self.dices.draw()
-            self.sprites_group.draw(self.screen)
-            pygame.display.flip()
-
-            fps = 0.5 if self.player.cpu else 30
-            self.clock.tick(fps)
-
-            if self.player.winner:
-                self.game_over = True
-                pygame.time.wait(3000)
-
+        pygame.time.wait(3000)
         pygame.quit()
 
 

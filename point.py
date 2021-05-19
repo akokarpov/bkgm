@@ -1,19 +1,18 @@
 
 import pygame
-from settings import Settings
 
 
 class Point(pygame.sprite.Sprite):
     """Points contain checkers and are interated by the Board class."""
 
-    def __init__(self, number, *checkers):
+    def __init__(self, number, bkgm, *checkers):
         pygame.sprite.Sprite.__init__(self)
-        self.settings = Settings()
+        self.settings = bkgm.settings
         self.number = number
         if self.number == 0:
-            self.stack = list(checkers[:15])
+            self.stack = list(bkgm.checkers[:15])
         elif self.number == 12:
-            self.stack = list(checkers[15:])
+            self.stack = list(bkgm.checkers[15:])
         else:
             self.stack = []
         self.image = pygame.Surface((50, 300), pygame.SRCALPHA)
