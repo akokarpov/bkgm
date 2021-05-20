@@ -39,7 +39,7 @@ class Board:
             combination = [roll + roll * i for i, roll in enumerate(rolls)]
             if len(self.board[0].stack) == 15 or self.head_forced:
                 self.head_played = False
-                if rolls[0] >= 3 and rolls[0] is not 5:
+                if rolls[0] >= 3 and rolls[0] != 5:
                     self.head_forced = True
                     combination = [rolls[0]]
 
