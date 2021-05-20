@@ -62,7 +62,7 @@ class Board:
             self.player.bear_off = True
         self.rotate(self.player.color)
 
-        rolls = self.combine(rolls)
+        combinations = self.combine(rolls)
         for s_index, _ in enumerate(self.board):
             endpoint = len(self.board) - 1
             if self.head_forced:
@@ -71,13 +71,13 @@ class Board:
                 continue
             if self.player.bear_off and s_index == endpoint:
                 break
-            for roll in rolls:
+            for roll in combinations:
                 t_index = s_index + roll
                 if self.color_check(s_index):
                     if not self.player.bear_off:
                         if self.point_empty(t_index) or self.color_check(t_index):
                             if self.check_prime(s_index, t_index):
-                                if rolls.index(roll) == 2 and self.moves == {}:
+                                if combinations.index(roll) == 2 and self.moves == {}:
                                     break
                                 self.add_move(s_index, t_index)
                         else:
@@ -88,9 +88,9 @@ class Board:
                                 self.color_check(t_index) or \
                                 t_index == endpoint or \
                                 t_index > endpoint and not self.doubles and \
-                                self.count_points(6, s_index) == 0 and rolls.index(roll) < 2 or \
+                                self.count_points(6, s_index) == 0 and combinations.index(roll) < 2 or \
                                 t_index > endpoint and self.doubles and \
-                                self.count_points(6, s_index) == 0 and rolls.index(roll) == 0 or \
+                                self.count_points(6, s_index) == 0 and combinations.index(roll) == 0 or \
                                 self.doubles and roll == 3 and s_index == 6 and t_index == roll * 2 or \
                                 self.doubles and roll == 2 and s_index == 6 and t_index == roll * 3 or \
                                 self.doubles and roll == 2 and s_index == 8 and t_index == roll * 2 or \
@@ -98,7 +98,7 @@ class Board:
                                 self.doubles and roll == 1 and s_index <= 9 and t_index == roll * 3 or \
                                 self.doubles and roll == 1 and s_index <= 10 and t_index == roll * 2:
                             self.add_move(s_index, t_index)
-                            self.one_move_to_play()
+        self.one_move_to_play()
         if self.check_winner():
             return True
         elif self.moves == {}:
@@ -155,7 +155,8 @@ class Board:
 
     def one_move_to_play(self):
         """Removes a possible move with lowest roll if player cannot play both rolls."""
-        if len(self.moves) == 1 and len(next(iter(self.moves.values()))) == 2:
+        if len(self.moves.keys()) == 1 and not self.player.bear_off and \
+            len(next(iter(self.moves.values()))) == 2 and not self.doubles:
             next(iter(self.moves.values())).remove(
                 min(next(iter(self.moves.values()))))
 
