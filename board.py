@@ -30,14 +30,15 @@ class Board:
 
     def combine(self, rolls):
         """Returns rolls combinations."""
-        if len(rolls) == 1:
+        if len(rolls) == 1 and not self.doubles:
             combination = rolls
-        if len(rolls) == 2:
+        if len(rolls) == 2 and not self.doubles:
             combination = [rolls[0], rolls[1], rolls[0] + rolls[1]]
-        if len(rolls) >= 3:
+        if len(rolls) == 4 or self.doubles:
             self.doubles = True
             combination = [roll + roll * i for i, roll in enumerate(rolls)]
-            if len(self.board[0].stack) == 15 or self.head_forced:
+            if len(self.board[0].stack) == 15 or \
+                    len(self.board[0].stack) == 14 and len(rolls) <= 3:
                 self.head_played = False
                 if rolls[0] >= 3 and rolls[0] != 5:
                     self.head_forced = True
@@ -156,7 +157,7 @@ class Board:
     def one_move_to_play(self):
         """Removes a possible move with lowest roll if player cannot play both rolls."""
         if len(self.moves.keys()) == 1 and not self.player.bear_off and \
-            len(next(iter(self.moves.values()))) == 2 and not self.doubles:
+                len(next(iter(self.moves.values()))) == 2 and not self.doubles:
             next(iter(self.moves.values())).remove(
                 min(next(iter(self.moves.values()))))
 
