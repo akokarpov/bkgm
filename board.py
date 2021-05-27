@@ -31,9 +31,9 @@ class Board:
     def combine(self, rolls):
         """Returns rolls combinations."""
         if len(rolls) == 1 and not self.doubles:
-            combination = rolls
+            return rolls
         if len(rolls) == 2 and not self.doubles:
-            combination = [rolls[0], rolls[1], rolls[0] + rolls[1]]
+            return [rolls[0], rolls[1], rolls[0] + rolls[1]]
         if len(rolls) == 4 or self.doubles:
             self.doubles = True
             combination = [roll + roll * i for i, roll in enumerate(rolls)]
@@ -43,11 +43,8 @@ class Board:
                 if rolls[0] >= 3 and rolls[0] != 5:
                     self.head_forced = True
                     combination = [rolls[0]]
-
-        if self.head_forced and len(self.board[0].stack) == 13:
-            self.head_forced = False
-            combination = [rolls[0], rolls[0] + rolls[0]]
-
+            if len(self.board[0].stack) == 13 and self.head_forced:
+                self.head_forced = False
         return combination
 
     def get_moves(self, rolls, player):
